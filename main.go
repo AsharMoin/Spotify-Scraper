@@ -18,19 +18,18 @@ const DateOnly = "2006-01-02" // Format for the date needed in json
 
 const OUTPUTFILE = "./Ayat Spotify.txt"
 
-var FavouriteOfTheYear Listen
-
-type Track struct {
+type ListenInstance struct {
 	EndTime    string `json:"endTime"`
 	ArtistName string `json:"artistName"`
 	TrackName  string `json:"trackName"`
 	MsPlayed   int    `json:"msPlayed"`
 }
 
-type Listen struct {
-	ArtistName, TrackName string
-	MsPlayed              int
-	EndTime               time.Time
+type ListenEntry struct {
+	ArtistName string
+	TrackName  string
+	MsPlayed   int
+	EndTime    time.Time
 }
 
 type Key struct {
@@ -40,7 +39,8 @@ type Key struct {
 }
 
 func main() {
-	err := filepath.WalkDir("./", func(path string, d fs.DirEntry, err error) error {
+	w := makeWriter(OUTPUTFILE)
+	err := filepath.WalkDir("./resources", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,21 @@ func main() {
 				return err
 			}
 
-			doStuff(byteData)
+			listenHistory := getTracksMap(byteData)
+
+			favourites, dates := doStuff(listenHistory)
+
+			for _, date := range *dates {
+				favSong := (*favourites)[date]
+		
+				output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
+		
+				writeStuff(output, w)
+			}
+
+			if err := w.Flush(); err != nil {
+				fmt.Println("Error flushing buffer:", err)
+			}
 		}
 
 		return nil
@@ -72,33 +86,21 @@ func main() {
 		log.Fatalf("Impossible to walk directories: %s", err)
 	}
 
-	w := makeWriter(OUTPUTFILE)
-	output := fmt.Sprintf("\nFavourite song of the year was: \nDate: %s | Most Popular: %s, %s | Minutes Listened: %v\n", FavouriteOfTheYear.EndTime.Format(DateOnly), FavouriteOfTheYear.ArtistName, FavouriteOfTheYear.TrackName, (FavouriteOfTheYear.MsPlayed / 60000))
-	writeStuff(output, w)
-	if err := w.Flush(); err != nil {
-		fmt.Println("Error flushing buffer:", err)
-		return
-	}
+}
+
+func doOtherStuff(byteData []byte) {
 
 }
 
-func doOtherStuff (byteData []byte) {
-	
-}
+func getTracksMap(byteData []byte) *map[time.Time]map[Key]int {
+	var listenHistory []ListenInstance
 
-func get
+	json.Unmarshal(byteData, &listenHistory)
 
-func doStuff(byteData []byte) {
-	var tracks []Track
+	m := make(map[time.Time]map[Key]int)
 
-	json.Unmarshal(byteData, &tracks)
-
-	m := make(map[string]map[Key]int)
-
-	for _, track := range tracks {
-		date := track.EndTime[:len(DateOnly)]
-
-		datetime, err := time.Parse(DateOnly, date)
+	for _, track := range listenHistory {
+		date, err := time.Parse(DateOnly, track.EndTime[:len(DateOnly)])
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -106,7 +108,7 @@ func doStuff(byteData []byte) {
 		var key Key = Key{
 			ArtistName: track.ArtistName,
 			TrackName:  track.TrackName,
-			EndTime:    datetime,
+			EndTime:    date,
 		}
 
 		if _, exists := m[date]; !exists {
@@ -116,28 +118,29 @@ func doStuff(byteData []byte) {
 		m[date][key] += track.MsPlayed
 	}
 
-	favourites := make(map[string]Listen)
-	for dateListened, items := range m {
+	return &m
+}
+
+func getDailyFavourite(listenHistory *map[time.Time]map[Key]int) *map[time.Time]ListenEntry {
+	favourites := make(map[time.Time]ListenEntry)
+	for dateListened, listenInstance := range *listenHistory {
 		favourite := 0
 		var favListen Key
-		for item, listen := range items {
+		for item, listen := range listenInstance {
 			if listen > favourite {
 				favListen = item
 				favourite = listen
 			}
-			if listen > FavouriteOfTheYear.MsPlayed {
-				FavouriteOfTheYear = Listen{favListen.ArtistName, favListen.TrackName, favourite, favListen.EndTime}
-			}
 		}
-		favourites[dateListened] = Listen{favListen.ArtistName, favListen.TrackName, favourite, favListen.EndTime}
+		favourites[dateListened] = ListenEntry{favListen.ArtistName, favListen.TrackName, favourite, favListen.EndTime}
 	}
 
+	return &favourites
+}
+
+func getSortedDates (m *map[time.Time]ListenEntry) *[]time.Time{
 	var keys []time.Time
-	for date := range favourites {
-		date, err := time.Parse(DateOnly, date)
-		if err != nil {
-			fmt.Println(err)
-		}
+	for date := range *m {
 		keys = append(keys, date)
 	}
 
@@ -145,32 +148,26 @@ func doStuff(byteData []byte) {
 		return keys[i].Before(keys[j])
 	})
 
-	w := makeWriter(OUTPUTFILE)
-
-	for _, date := range keys {
-		favSong := favourites[date.Format(DateOnly)]
-
-		output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
-
-		writeStuff(output, w)
-	}
-
-	// Flush the buffered writer to ensure all data is written to the file
-	if err := w.Flush(); err != nil {
-		fmt.Println("Error flushing buffer:", err)
-		return
-	}
+	return &keys
 }
 
-func makeWriter (fName string) *bufio.Writer{
+func doStuff(listenHistory *map[time.Time]map[Key]int) (*map[time.Time]ListenEntry, *[]time.Time){
+	favourites := getDailyFavourite(listenHistory)
+	
+	dates := getSortedDates(favourites)
+
+	return favourites, dates
+}
+
+func makeWriter(fName string) *bufio.Writer {
 	file, err := os.OpenFile(fName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		panic(err)
 	}
-	return bufio.NewWriter(file)	
+	return bufio.NewWriter(file)
 }
 
-func writeStuff (output string, w *bufio.Writer) {
+func writeStuff(output string, w *bufio.Writer) {
 	// Write the output to the file
 	_, err := w.WriteString(output)
 	if err != nil {
