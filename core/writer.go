@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func makeWriter(fName string) *bufio.Writer {
+func MakeWriter(fName string) *bufio.Writer {
 	file, err := os.OpenFile(fName, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		panic(err)
@@ -14,7 +14,7 @@ func makeWriter(fName string) *bufio.Writer {
 	return bufio.NewWriter(file)
 }
 
-func writeStuff(output string, w *bufio.Writer) {
+func WriteStuff(output string, w *bufio.Writer) {
 	// Write the output to the file
 	_, err := w.WriteString(output)
 	if err != nil {
