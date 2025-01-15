@@ -2,72 +2,46 @@ package spotifyhistory
 
 import (
 	"fmt"
-	"io"
-	"io/fs"
-	"log"
-	"os"
-	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 )
 
 func GetTopSongs() {
+	// get writer so we can write to output file
 	w := MakeWriter(OUTPUTFILE)
-	err := filepath.WalkDir("../resources", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
 
-		if !d.IsDir() && strings.HasPrefix(d.Name(), "StreamingHistory_music") {
-			// Open the file
-			data, err := os.Open(path)
-			if err != nil {
-				fmt.Printf("Something went wrong while opening the file %v: %v\n", path, err)
-				return err
-			}
-
-			// Defer closing the file to ensure it's closed when we're done
-			defer data.Close()
-
-			// Read the file contents
-			byteData, err := io.ReadAll(data)
-			if err != nil {
-				fmt.Printf("Error reading file %v: %v\n", path, err)
-				return err
-			}
-
-			listenHistory := GetTracksMap(byteData)
-
-			favourites := GetDailyFavourite(listenHistory)
-
-			dates := GetSortedDates(favourites)
-
-			for _, date := range *dates {
-				favSong := (*favourites)[date]
-
-				output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
-
-				WriteStuff(output, w)
-			}
-
-			if err := w.Flush(); err != nil {
-				fmt.Println("Error flushing buffer:", err)
-			}
-		}
-
-		return nil
-	})
+	// get spotify history
+	spotifyHistory, err := GetSpotifyHistory(DATAFILES)
 	if err != nil {
-		log.Fatalf("Impossible to walk directories: %s", err)
+		fmt.Println(err)
 	}
+
+	// get structured data
+	listenHistory := GetTracksMap(spotifyHistory)
+
+	// get favourite songs
+	// also get months so printing it is organized
+	favourites := GetDailyFavourite(listenHistory)
+	dates := GetSortedDates(favourites)
+
+	// write to output file
+	for _, date := range *dates {
+		favSong := (*favourites)[date]
+		output := fmt.Sprintf("Date %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DATEONLY), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
+		WriteStuff(output, w)
+	}
+
+	if err := w.Flush(); err != nil {
+		fmt.Println("Error flushing buffer:", err)
+	}
+
 }
 
-func GetDailyFavourite(listenHistory *map[time.Time]map[Key]int) *map[time.Time]ListenEntry {
+func GetDailyFavourite(listenHistory *map[time.Time]map[Entry]int) *map[time.Time]ListenEntry {
 	favourites := make(map[time.Time]ListenEntry)
 	for dateListened, listenInstance := range *listenHistory {
 		favourite := 0
-		var favListen Key
+		var favListen Entry
 		for item, listen := range listenInstance {
 			if listen > favourite {
 				favListen = item

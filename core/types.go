@@ -4,9 +4,11 @@ import (
 	"time"
 )
 
-const DateOnly = "2006-01-02" // Format for the date needed in json
+const DATEONLY = "2006-01-02" // Format for the date needed in json
 
 const OUTPUTFILE = "../output/Ayat Spotify.txt"
+
+const DATAFILES = "../resources"
 
 type ListenInstance struct {
 	EndTime    string `json:"endTime"`
@@ -22,8 +24,13 @@ type ListenEntry struct {
 	EndTime    time.Time
 }
 
-type Key struct {
+type Entry struct {
 	ArtistName string
 	TrackName  string
 	EndTime    time.Time
+}
+
+type SongEntry struct {
+	TrackName string
+	MsPlayed  int
 }

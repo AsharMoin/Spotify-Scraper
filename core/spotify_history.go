@@ -1,33 +1,27 @@
 package spotifyhistory
 
 import (
-	"encoding/json"
-	"time"
 	"fmt"
+	"time"
 )
 
-
-func GetTracksMap(byteData []byte) *map[time.Time]map[Key]int {
-	var listenHistory []ListenInstance
-
-	json.Unmarshal(byteData, &listenHistory)
-
-	m := make(map[time.Time]map[Key]int)
+func GetTracksMap(listenHistory []ListenInstance) *map[time.Time]map[Entry]int {
+	m := make(map[time.Time]map[Entry]int)
 
 	for _, track := range listenHistory {
-		date, err := time.Parse(DateOnly, track.EndTime[:len(DateOnly)])
+		date, err := time.Parse(DATEONLY, track.EndTime[:len(DATEONLY)])
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		var key Key = Key{
+		var key Entry = Entry{
 			ArtistName: track.ArtistName,
 			TrackName:  track.TrackName,
 			EndTime:    date,
 		}
 
 		if _, exists := m[date]; !exists {
-			m[date] = make(map[Key]int)
+			m[date] = make(map[Entry]int)
 		}
 
 		m[date][key] += track.MsPlayed
