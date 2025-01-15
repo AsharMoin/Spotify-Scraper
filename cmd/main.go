@@ -69,9 +69,9 @@ func main() {
 
 			for _, date := range *dates {
 				favSong := (*favourites)[date]
-		
+
 				output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
-		
+
 				writeStuff(output, w)
 			}
 
@@ -138,7 +138,7 @@ func getDailyFavourite(listenHistory *map[time.Time]map[Key]int) *map[time.Time]
 	return &favourites
 }
 
-func getSortedDates (m *map[time.Time]ListenEntry) *[]time.Time{
+func getSortedDates(m *map[time.Time]ListenEntry) *[]time.Time {
 	var keys []time.Time
 	for date := range *m {
 		keys = append(keys, date)
@@ -151,9 +151,9 @@ func getSortedDates (m *map[time.Time]ListenEntry) *[]time.Time{
 	return &keys
 }
 
-func doStuff(listenHistory *map[time.Time]map[Key]int) (*map[time.Time]ListenEntry, *[]time.Time){
+func doStuff(listenHistory *map[time.Time]map[Key]int) (*map[time.Time]ListenEntry, *[]time.Time) {
 	favourites := getDailyFavourite(listenHistory)
-	
+
 	dates := getSortedDates(favourites)
 
 	return favourites, dates
