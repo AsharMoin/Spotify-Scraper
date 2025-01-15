@@ -6,7 +6,7 @@ import (
 
 const DateOnly = "2006-01-02" // Format for the date needed in json
 
-const OUTPUTFILE = "./Ayat Spotify.txt"
+const OUTPUTFILE = "../output/Ayat Spotify.txt"
 
 type ListenInstance struct {
 	EndTime    string `json:"endTime"`

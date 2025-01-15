@@ -8,14 +8,13 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	spotify "github.com/AsharMoin/Spotify-Scraper/core"
 )
 
 func main() {
-	w := makeWriter(spotify.OUTPUTFILE)
-	err := filepath.WalkDir("./resources", func(path string, d fs.DirEntry, err error) error {
+	w := spotify.MakeWriter(spotify.OUTPUTFILE)
+	err := filepath.WalkDir("../resources", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -38,16 +37,18 @@ func main() {
 				return err
 			}
 
-			listenHistory := getTracksMap(byteData)
+			listenHistory := spotify.GetTracksMap(byteData)
 
-			favourites, dates := doStuff(listenHistory)
+			favourites := spotify.GetDailyFavourite(listenHistory)
+
+			dates := spotify.GetSortedDates(favourites)
 
 			for _, date := range *dates {
 				favSong := (*favourites)[date]
 
-				output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
+				output := fmt.Sprintf("Date: %s | Most Popular: %s, %s | Minutes Listened: %v\n", date.Format(spotify.DateOnly), favSong.ArtistName, favSong.TrackName, (favSong.MsPlayed / 60000))
 
-				writeStuff(output, w)
+				spotify.WriteStuff(output, w)
 			}
 
 			if err := w.Flush(); err != nil {
@@ -61,12 +62,4 @@ func main() {
 		log.Fatalf("Impossible to walk directories: %s", err)
 	}
 
-}
-
-func doStuff(listenHistory *map[time.Time]map[Key]int) (*map[time.Time]ListenEntry, *[]time.Time) {
-	favourites := getDailyFavourite(listenHistory)
-
-	dates := getSortedDates(favourites)
-
-	return favourites, dates
 }
