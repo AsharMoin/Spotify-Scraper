@@ -22,3 +22,7 @@ func WriteStuff(output string, w *bufio.Writer) {
 		return
 	}
 }
+
+func FormatOutput(entry ListenEntry) {
+
+}

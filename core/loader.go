@@ -20,7 +20,7 @@ func GetSpotifyHistory(path string) ([]ListenInstance, error) {
 		}
 
 		// if the file is not a dir and has the correct prefix, open it and read it, appending to byteData
-		if !d.IsDir() && strings.HasPrefix(d.Name(), "StreamingHistory_music") {
+		if !d.IsDir() && strings.HasPrefix(d.Name(), "Streaming_History_Audio_") {
 			// open the file
 			data, err := os.Open(path)
 			if err != nil {
