@@ -23,7 +23,7 @@ type ListenEntry struct {
 	ArtistName string
 	AlbumName  string
 	TrackName  string
-	MsPlayed   int
+	MsPlayed   float64
 	TimeStamp  string
 	URI        string
 }

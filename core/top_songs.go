@@ -1,20 +1,55 @@
 package spotifyhistory
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/fs"
+	"math"
+	"os"
+	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
-func GetTopSongs() {
-	// get writer so we can write to output file
-	w := MakeWriter(OUTPUTFILE)
-
-	// get spotify history
-	spotifyHistory, err := GetSpotifyHistory(DATAFILES)
+func GetSpotifyHistory() {
+	var year int = 2018
+	// walk the resources dir and keep appending to byteData
+	err := filepath.WalkDir("../resources", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// if the file is not a dir and has the correct prefix, open it and read it, appending to byteData
+		if !d.IsDir() && strings.HasPrefix(d.Name(), "Streaming_History_Audio_") {
+			// open the file
+			data, err := os.Open(path)
+			if err != nil {
+				fmt.Printf("Something went wrong while opening the file %v: %v\n", path, err)
+				return err
+			}
+			// defer closing the file to ensure it's closed when we're done
+			defer data.Close()
+			// read the file contents
+			var byteData []ListenInstance
+			if err := json.NewDecoder(data).Decode(&byteData); err != nil {
+				fmt.Printf("Error decoding JSON in file %v: %v\n", path, err)
+				return err
+			}
+			outputFile := fmt.Sprintf("../output/Streaming_History_%d.txt", year)
+			GetTopSongs(outputFile, byteData)
+			year++
+		}
+		return nil
+	})
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func GetTopSongs(outputFile string, spotifyHistory []ListenInstance) {
+	// get writer so we can write to output file
+	w := MakeWriter(outputFile)
+	defer w.Flush()
 
 	// get structured data
 	listenHistory := GetTracksMap(spotifyHistory)
@@ -30,24 +65,19 @@ func GetTopSongs() {
 		output := FormatOutput(favSong)
 		WriteStuff(output, w)
 	}
-
-	if err := w.Flush(); err != nil {
-		fmt.Println("Error flushing buffer:", err)
-	}
-
 }
 
 func GetDailyFavourite(listenHistory *map[time.Time]map[Entry]int) *map[time.Time]ListenEntry {
 	favourites := make(map[time.Time]ListenEntry)
 	for dateListened, listenInstance := range *listenHistory {
-		listenTime := 0
+		var listenTime float64 = 0.0
 		var favListen Entry
 		foundValid := false
 
 		for item, listen := range listenInstance {
-			if listen > listenTime {
+			if float64(listen) > listenTime {
 				favListen = item
-				listenTime = listen
+				listenTime = float64(listen)
 				foundValid = true
 			}
 		}
@@ -58,7 +88,7 @@ func GetDailyFavourite(listenHistory *map[time.Time]map[Entry]int) *map[time.Tim
 				ArtistName: favListen.ArtistName,
 				AlbumName:  favListen.AlbumName,
 				TrackName:  favListen.TrackName,
-				MsPlayed:   listenTime / 60000,
+				MsPlayed:   math.Round((listenTime * 100 / 100) / 60000),
 				TimeStamp:  favListen.TimeStamp.Format(DATEONLY),
 				URI:        favListen.URI,
 			}

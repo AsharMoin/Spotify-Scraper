@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	spotify.GetTopSongs()
+	spotify.GetSpotifyHistory()
 }
