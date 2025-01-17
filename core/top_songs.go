@@ -27,7 +27,7 @@ func GetTopSongs() {
 	// write to output file
 	for _, date := range *dates {
 		favSong := (*favourites)[date]
-		output := fmt.Sprintf("Date %s | Most Popular: %s, %s | Album: %s | Minutes Listened: %v minutes | Spotify URI: %s\n", date.Format(DATEONLY), favSong.ArtistName, favSong.TrackName, favSong.AlbumName, (favSong.MsPlayed / 60000), favSong.URI)
+		output := FormatOutput(favSong)
 		WriteStuff(output, w)
 	}
 
@@ -42,13 +42,27 @@ func GetDailyFavourite(listenHistory *map[time.Time]map[Entry]int) *map[time.Tim
 	for dateListened, listenInstance := range *listenHistory {
 		listenTime := 0
 		var favListen Entry
+		foundValid := false
+
 		for item, listen := range listenInstance {
 			if listen > listenTime {
 				favListen = item
 				listenTime = listen
+				foundValid = true
 			}
 		}
-		favourites[dateListened] = ListenEntry{favListen.ArtistName, favListen.AlbumName, favListen.TrackName, listenTime, favListen.TimeStamp, favListen.URI}
+
+		// Only add to favorites if we found a valid entry
+		if foundValid {
+			favourites[dateListened] = ListenEntry{
+				ArtistName: favListen.ArtistName,
+				AlbumName:  favListen.AlbumName,
+				TrackName:  favListen.TrackName,
+				MsPlayed:   listenTime / 60000,
+				TimeStamp:  favListen.TimeStamp.Format(DATEONLY),
+				URI:        favListen.URI,
+			}
+		}
 	}
 
 	return &favourites

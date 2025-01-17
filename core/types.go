@@ -24,7 +24,7 @@ type ListenEntry struct {
 	AlbumName  string
 	TrackName  string
 	MsPlayed   int
-	TimeStamp  time.Time
+	TimeStamp  string
 	URI        string
 }
 
@@ -34,9 +34,4 @@ type Entry struct {
 	TrackName  string
 	TimeStamp  time.Time
 	URI        string
-}
-
-type SongEntry struct {
-	TrackName string
-	MsPlayed  int
 }
