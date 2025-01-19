@@ -1,2 +1,2 @@
-# Spotify-Scraper
+# Spotifystats
 My first uses of go
