@@ -57,18 +57,63 @@ func WriteStuff(output string, w *bufio.Writer) {
 	}
 }
 
-func FormatOutput(entry ListenEntry) string {
+func FormatSongOutput(entry Song) string {
 	var output strings.Builder
 	boxWidth := 100
 	labelWidth := 10 // Width for labels (Title, Artist, etc.)
 
+	// if its a new year, append to string
 	entryYear := entry.TimeStamp[:4]
 	if entryYear != year {
 		yearDivider := fmt.Sprintf("\n---%s---\n\n", entryYear)
 		output.WriteString(yearDivider)
 		year = entryYear
 	}
+
+	// if its a new month, append to string
 	entryMonthStr := entry.TimeStamp[5:7]
+	entryMonthInt, err := strconv.Atoi(entryMonthStr)
+	if err != nil {
+		fmt.Println("Error converting month:", err)
+		return "Error Converting"
+	}
+	entryMonth := Month(entryMonthInt - 1)
+	if entryMonth != month {
+		monthDivide := fmt.Sprintf("\n---%s---\n\n", entryMonth)
+		output.WriteString(monthDivide)
+		month = entryMonth
+	}
+
+	// make the box design the data gets printed out in
+	output.WriteString(strings.Repeat("-", boxWidth) + "\n")
+
+	v := reflect.ValueOf(entry)
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		fieldName := t.Field(i).Name
+		fieldValue := fmt.Sprint(v.Field(i))
+
+		line := fmt.Sprintf("| %-*s : %-*s |\n",
+			labelWidth,
+			fieldName,
+			boxWidth-labelWidth-7,
+			fieldValue,
+		)
+		output.WriteString(line)
+	}
+
+	output.WriteString(strings.Repeat("-", boxWidth) + "\n")
+
+	return output.String()
+}
+
+func FormatMonthOutput(entry Album, curMonth string) string {
+	var output strings.Builder
+	boxWidth := 50
+	labelWidth := 12 // Width for labels (Title, Artist, etc.)
+
+	entryMonthStr := curMonth[5:7]
 	entryMonthInt, err := strconv.Atoi(entryMonthStr)
 	if err != nil {
 		fmt.Println("Error converting month:", err)

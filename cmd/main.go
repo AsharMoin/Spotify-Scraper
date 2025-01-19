@@ -1,9 +1,10 @@
 package main
 
 import (
-	spotify "github.com/AsharMoin/Spotify-Scraper/core"
+	spotify "github.com/AsharMoin/Spotifystats/core"
 )
 
 func main() {
-	spotify.GetSpotifyHistory()
+	spotify.GetListenHistory()
+	spotify.GetAlbumHistory()
 }
